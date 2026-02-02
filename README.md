@@ -75,17 +75,6 @@ npx expo start
 - Axios (API calls)
 - Expo Image Picker
 
-## Features (Planned)
-
-- ✅ User authentication
-- ✅ Create game entries with photos
-- ✅ Rate games (1-5 stars)
-- ✅ View your game history
-- 🚧 Social features (friends, feed)
-- 🚧 Comments and likes
-- 🚧 Multiple sports support
-- 🚧 Stats and insights
-
 ## License
 
 MIT
