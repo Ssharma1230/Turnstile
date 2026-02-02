@@ -1,22 +1,26 @@
-import { StyleSheet, View, Text } from 'react-native';
-import { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../src/context/AuthContext';
 
 export default function Index() {
-  const [apiStatus, setApiStatus] = useState('Checking...');
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    // Test connection to backend
-    fetch('http://localhost:3000/health')
-      .then(res => res.json())
-      .then(data => setApiStatus('Connected to API'))
-      .catch(err => setApiStatus('API not reachable'));
-  }, []);
+    if (!isLoading) {
+      if (isAuthenticated) {
+        router.replace('/home');
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [isAuthenticated, isLoading]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Turnstile</Text>
-      <Text style={styles.subtitle}>Track your live sports experiences</Text>
-      <Text style={styles.status}>{apiStatus}</Text>
+      <ActivityIndicator size="large" color="#2563eb" style={styles.loader} />
     </View>
   );
 }
@@ -24,24 +28,17 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 36,
+    fontSize: 42,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 24,
     color: '#1a1a1a',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-  },
-  status: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 12,
+  loader: {
+    marginTop: 16,
   },
 });
