@@ -29,7 +29,7 @@ export default function RegisterScreen() {
     console.log('🔍 RegisterScreen: isAuthenticated =', isAuthenticated);
     if (isAuthenticated) {
       console.log('✅ User authenticated, navigating to home...');
-      router.replace('/home');
+      router.replace('/(tabs)');
     }
   }, [isAuthenticated]);
 

@@ -31,7 +31,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid - log user out
       await removeToken();
-      // You can add navigation to login screen here later
     }
     return Promise.reject(error);
   }
@@ -71,6 +70,51 @@ export const userAPI = {
 
   getById: async (id: string) => {
     const response = await api.get(API_ENDPOINTS.users.byId(id));
+    return response.data;
+  },
+};
+
+// Entry API calls
+export const entryAPI = {
+  // Get current user's entries
+  getMyEntries: async () => {
+    const response = await api.get(API_ENDPOINTS.entries.list);
+    return response.data;
+  },
+
+  // Create new entry
+  create: async (entryData: {
+    sport_type: string;
+    home_team: string;
+    away_team: string;
+    venue_name: string;
+    game_date: string;
+    home_score?: number;
+    away_score?: number;
+    rating: number;
+    description?: string;
+    photo_url?: string;
+    seat_section?: string;
+  }) => {
+    const response = await api.post(API_ENDPOINTS.entries.create, entryData);
+    return response.data;
+  },
+
+  // Get single entry
+  getById: async (id: string) => {
+    const response = await api.get(API_ENDPOINTS.entries.detail(id));
+    return response.data;
+  },
+
+  // Update entry
+  update: async (id: string, entryData: any) => {
+    const response = await api.put(API_ENDPOINTS.entries.detail(id), entryData);
+    return response.data;
+  },
+
+  // Delete entry
+  delete: async (id: string) => {
+    const response = await api.delete(API_ENDPOINTS.entries.detail(id));
     return response.data;
   },
 };

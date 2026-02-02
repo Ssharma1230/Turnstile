@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
 
 export default function Index() {
@@ -9,11 +9,13 @@ export default function Index() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (isAuthenticated) {
-        router.replace('/home');
-      } else {
-        router.replace('/login');
-      }
+      setTimeout(() => {
+        if (isAuthenticated) {
+          router.replace('/(tabs)');  // Navigate to tabs
+        } else {
+          router.replace('/login');
+        }
+      }, 100);
     }
   }, [isAuthenticated, isLoading]);
 

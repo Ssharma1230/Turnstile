@@ -26,7 +26,7 @@ export default function LoginScreen() {
     console.log('🔍 LoginScreen: isAuthenticated =', isAuthenticated);
     if (isAuthenticated) {
       console.log('✅ User authenticated, navigating to home...');
-      router.replace('/home');
+      router.replace('/(tabs)');
     }
   }, [isAuthenticated]);
 
