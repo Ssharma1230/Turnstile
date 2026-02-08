@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { entryAPI } from '../../src/services/api';
 
 type GameEntry = {
@@ -31,6 +31,8 @@ type GameEntry = {
 export default function FeedScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams();
+  
   const [entries, setEntries] = useState<GameEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,6 +42,14 @@ export default function FeedScreen() {
     loadEntries();
   }, []);
 
+  // Listen for refresh parameter from create screen
+  useEffect(() => {
+    if (params.refresh) {
+      console.log('🔄 Refresh triggered from create screen');
+      loadEntries();
+    }
+  }, [params.refresh]);
+
   const loadEntries = async () => {
     setIsLoading(true);
     setError(null);
@@ -47,11 +57,15 @@ export default function FeedScreen() {
       console.log('📥 Fetching my entries...');
       const response = await entryAPI.getMyEntries();
       console.log('✅ Entries loaded:', response.entries.length);
-      setEntries(response.entries);
+      
+      // Sort by game_date (most recent first)
+      const sortedEntries = response.entries.sort((a: GameEntry, b: GameEntry) => {
+        return new Date(b.game_date).getTime() - new Date(a.game_date).getTime();
+      });
+      
+      setEntries(sortedEntries);
     } catch (error: any) {
-      console.log('⚠️ Failed to load entries (endpoint may not exist yet):', error.message);
-      // Silently fail - just show empty state
-      // Don't alert the user since the endpoint might not be built yet
+      console.log('⚠️ Failed to load entries:', error.message);
       setEntries([]);
       setError('Unable to load entries');
     } finally {
@@ -126,9 +140,7 @@ export default function FeedScreen() {
         </Text>
       )}
       
-      <Text style={styles.timestamp}>
-        {new Date(item.created_at).toLocaleDateString()}
-      </Text>
+      {/* Removed timestamp - was confusing with game_date */}
     </TouchableOpacity>
   );
 
@@ -329,10 +341,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
-  },
-  timestamp: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginTop: 8,
   },
 });

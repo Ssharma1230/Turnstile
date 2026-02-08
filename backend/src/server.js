@@ -25,6 +25,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/entries', require('./routes/entries'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -39,4 +40,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Turnstile API running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/register`);
+  console.log(`🎟️  Entry endpoints: http://localhost:${PORT}/api/entries`);
 });
