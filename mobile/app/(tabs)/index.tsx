@@ -7,6 +7,8 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -28,15 +30,25 @@ type GameEntry = {
   created_at: string;
 };
 
+type SortOption = 'date-desc' | 'date-asc' | 'rating-desc' | 'rating-asc';
+
+const SPORTS = ['All', 'NBA', 'NFL', 'MLB', 'NHL', 'MLS', 'NCAA Football', 'NCAA Basketball', 'Other'];
+
 export default function FeedScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams();
   
-  const [entries, setEntries] = useState<GameEntry[]>([]);
+  const [allEntries, setAllEntries] = useState<GameEntry[]>([]);
+  const [displayedEntries, setDisplayedEntries] = useState<GameEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filter and sort state
+  const [selectedSport, setSelectedSport] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   useEffect(() => {
     loadEntries();
@@ -50,6 +62,11 @@ export default function FeedScreen() {
     }
   }, [params.refresh]);
 
+  // Apply filters and sorting whenever they change
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [allEntries, selectedSport, sortBy]);
+
   const loadEntries = async () => {
     setIsLoading(true);
     setError(null);
@@ -57,20 +74,41 @@ export default function FeedScreen() {
       console.log('📥 Fetching my entries...');
       const response = await entryAPI.getMyEntries();
       console.log('✅ Entries loaded:', response.entries.length);
-      
-      // Sort by game_date (most recent first)
-      const sortedEntries = response.entries.sort((a: GameEntry, b: GameEntry) => {
-        return new Date(b.game_date).getTime() - new Date(a.game_date).getTime();
-      });
-      
-      setEntries(sortedEntries);
+      setAllEntries(response.entries);
     } catch (error: any) {
       console.log('⚠️ Failed to load entries:', error.message);
-      setEntries([]);
+      setAllEntries([]);
       setError('Unable to load entries');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const applyFiltersAndSort = () => {
+    let filtered = [...allEntries];
+
+    // Filter by sport
+    if (selectedSport !== 'All') {
+      filtered = filtered.filter(entry => entry.sport_type === selectedSport);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.game_date).getTime() - new Date(a.game_date).getTime();
+        case 'date-asc':
+          return new Date(a.game_date).getTime() - new Date(b.game_date).getTime();
+        case 'rating-desc':
+          return b.rating - a.rating;
+        case 'rating-asc':
+          return a.rating - b.rating;
+        default:
+          return 0;
+      }
+    });
+
+    setDisplayedEntries(filtered);
   };
 
   const onRefresh = async () => {
@@ -80,21 +118,42 @@ export default function FeedScreen() {
   };
 
   const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    const emptyStars = 5 - Math.ceil(rating);
+    const stars = [];
+    
+    for (let i = 1; i <= 5; i++) {
+      if (rating >= i) {
+        // Full star
+        stars.push(
+          <Text key={i} style={styles.star}>⭐</Text>
+        );
+      } else if (rating >= i - 0.5) {
+        // Half star - use overlay technique
+        stars.push(
+          <View key={i} style={styles.halfStarContainer}>
+            <Text style={[styles.star, styles.starEmpty]}>☆</Text>
+            <View style={styles.halfStarOverlay}>
+              <Text style={styles.star}>⭐</Text>
+            </View>
+          </View>
+        );
+      } else {
+        // Empty star
+        stars.push(
+          <Text key={i} style={[styles.star, styles.starEmpty]}>☆</Text>
+        );
+      }
+    }
 
-    return (
-      <View style={styles.starsContainer}>
-        {[...Array(fullStars)].map((_, i) => (
-          <Text key={`full-${i}`} style={styles.star}>⭐</Text>
-        ))}
-        {hasHalfStar && <Text style={styles.star}>⭐</Text>}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Text key={`empty-${i}`} style={styles.starEmpty}>☆</Text>
-        ))}
-      </View>
-    );
+    return <View style={styles.starsContainer}>{stars}</View>;
+  };
+
+  const getSortLabel = (sort: SortOption) => {
+    switch (sort) {
+      case 'date-desc': return 'Newest First';
+      case 'date-asc': return 'Oldest First';
+      case 'rating-desc': return 'Highest Rated';
+      case 'rating-asc': return 'Lowest Rated';
+    }
   };
 
   const renderEntry = ({ item }: { item: GameEntry }) => (
@@ -139,23 +198,26 @@ export default function FeedScreen() {
           {item.description}
         </Text>
       )}
-      
-      {/* Removed timestamp - was confusing with game_date */}
     </TouchableOpacity>
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={styles.emptyIcon}>🎟️</Text>
-      <Text style={styles.emptyTitle}>No entries yet</Text>
+      <Text style={styles.emptyTitle}>
+        {selectedSport === 'All' ? 'No entries yet' : `No ${selectedSport} games yet`}
+      </Text>
       <Text style={styles.emptyText}>
-        Start tracking your live sports experiences!
+        {selectedSport === 'All' 
+          ? 'Start tracking your live sports experiences!'
+          : `Create your first ${selectedSport} entry or change the filter.`
+        }
       </Text>
       <TouchableOpacity
         style={styles.createButton}
         onPress={() => router.push('/(tabs)/create')}
       >
-        <Text style={styles.createButtonText}>Create Your First Entry</Text>
+        <Text style={styles.createButtonText}>Create Entry</Text>
       </TouchableOpacity>
     </View>
   );
@@ -171,19 +233,51 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Games</Text>
-        <Text style={styles.headerSubtitle}>
-          {entries.length} {entries.length === 1 ? 'game' : 'games'} attended
-        </Text>
+        <View>
+          <Text style={styles.headerTitle}>My Games</Text>
+          <Text style={styles.headerSubtitle}>
+            {displayedEntries.length} of {allEntries.length} {allEntries.length === 1 ? 'game' : 'games'}
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowFilterModal(true)}
+        >
+          <Text style={styles.filterButtonText}>⚙️ Filter</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Active Filters Display */}
+      {(selectedSport !== 'All' || sortBy !== 'date-desc') && (
+        <View style={styles.activeFilters}>
+          {selectedSport !== 'All' && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>{selectedSport}</Text>
+              <TouchableOpacity onPress={() => setSelectedSport('All')}>
+                <Text style={styles.filterChipClose}> ✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {sortBy !== 'date-desc' && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>{getSortLabel(sortBy)}</Text>
+              <TouchableOpacity onPress={() => setSortBy('date-desc')}>
+                <Text style={styles.filterChipClose}> ✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
       
+      {/* Entries List */}
       <FlatList
-        data={entries}
+        data={displayedEntries}
         renderItem={renderEntry}
         keyExtractor={(item) => item.id}
         contentContainerStyle={
-          entries.length === 0 ? styles.emptyContainer : styles.listContent
+          displayedEntries.length === 0 ? styles.emptyContainer : styles.listContent
         }
         refreshControl={
           <RefreshControl 
@@ -194,6 +288,105 @@ export default function FeedScreen() {
         }
         ListEmptyComponent={renderEmptyState}
       />
+
+      {/* Filter Modal */}
+      <Modal
+        visible={showFilterModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter & Sort</Text>
+              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView>
+              {/* Sport Filter */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Sport</Text>
+                <View style={styles.sportGrid}>
+                  {SPORTS.map((sport) => (
+                    <TouchableOpacity
+                      key={sport}
+                      style={[
+                        styles.sportFilterButton,
+                        selectedSport === sport && styles.sportFilterButtonActive,
+                      ]}
+                      onPress={() => setSelectedSport(sport)}
+                    >
+                      <Text
+                        style={[
+                          styles.sportFilterButtonText,
+                          selectedSport === sport && styles.sportFilterButtonTextActive,
+                        ]}
+                      >
+                        {sport}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Sort Options */}
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionTitle}>Sort By</Text>
+                
+                <TouchableOpacity
+                  style={[styles.sortOption, sortBy === 'date-desc' && styles.sortOptionActive]}
+                  onPress={() => setSortBy('date-desc')}
+                >
+                  <Text style={[styles.sortOptionText, sortBy === 'date-desc' && styles.sortOptionTextActive]}>
+                    📅 Newest Games First
+                  </Text>
+                  {sortBy === 'date-desc' && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sortOption, sortBy === 'date-asc' && styles.sortOptionActive]}
+                  onPress={() => setSortBy('date-asc')}
+                >
+                  <Text style={[styles.sortOptionText, sortBy === 'date-asc' && styles.sortOptionTextActive]}>
+                    📅 Oldest Games First
+                  </Text>
+                  {sortBy === 'date-asc' && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sortOption, sortBy === 'rating-desc' && styles.sortOptionActive]}
+                  onPress={() => setSortBy('rating-desc')}
+                >
+                  <Text style={[styles.sortOptionText, sortBy === 'rating-desc' && styles.sortOptionTextActive]}>
+                    ⭐ Highest Rated First
+                  </Text>
+                  {sortBy === 'rating-desc' && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sortOption, sortBy === 'rating-asc' && styles.sortOptionActive]}
+                  onPress={() => setSortBy('rating-asc')}
+                >
+                  <Text style={[styles.sortOptionText, sortBy === 'rating-asc' && styles.sortOptionTextActive]}>
+                    ⭐ Lowest Rated First
+                  </Text>
+                  {sortBy === 'rating-asc' && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalDoneButton}
+              onPress={() => setShowFilterModal(false)}
+            >
+              <Text style={styles.modalDoneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -221,6 +414,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 24,
@@ -231,6 +427,44 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  filterButton: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  activeFilters: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  filterChipClose: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   emptyContainer: {
     flex: 1,
@@ -252,6 +486,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     color: '#1f2937',
+    textAlign: 'center',
   },
   emptyText: {
     fontSize: 16,
@@ -296,15 +531,28 @@ const styles = StyleSheet.create({
   },
   starsContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   star: {
     fontSize: 16,
     marginLeft: 2,
+    color: '#f59e0b',
   },
   starEmpty: {
-    fontSize: 16,
-    marginLeft: 2,
     color: '#d1d5db',
+  },
+  halfStarContainer: {
+    position: 'relative',
+    width: 18,
+    height: 18,
+    marginLeft: 2,
+  },
+  halfStarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 9,
+    overflow: 'hidden',
   },
   teams: {
     fontSize: 18,
@@ -341,5 +589,110 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  modalClose: {
+    fontSize: 24,
+    color: '#6b7280',
+  },
+  modalSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  sportGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sportFilterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  sportFilterButtonActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  sportFilterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  sportFilterButtonTextActive: {
+    color: '#fff',
+  },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#f9fafb',
+  },
+  sortOptionActive: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#2563eb',
+  },
+  sortOptionText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  sortOptionTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  checkmark: {
+    fontSize: 18,
+    color: '#2563eb',
+    fontWeight: 'bold',
+  },
+  modalDoneButton: {
+    backgroundColor: '#2563eb',
+    padding: 16,
+    margin: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalDoneButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
