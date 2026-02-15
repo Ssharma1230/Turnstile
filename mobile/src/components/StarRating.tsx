@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import Star from './Star';
 
 type StarRatingProps = {
   rating: number;
@@ -7,7 +8,7 @@ type StarRatingProps = {
   size?: number;
 };
 
-export default function StarRating({ rating, onRatingChange, size = 40 }: StarRatingProps) {
+export default function StarRating({ rating, onRatingChange, size = 32 }: StarRatingProps) {
   const stars = [1, 2, 3, 4, 5];
 
   const handleStarPress = (starValue: number) => {
@@ -25,53 +26,27 @@ export default function StarRating({ rating, onRatingChange, size = 40 }: StarRa
     }
   };
 
-  const renderStar = (starValue: number) => {
-    // Full star: rating is >= this star value
+  const getStarFill = (starValue: number) => {
     if (rating >= starValue) {
-      return (
-        <TouchableOpacity
-          key={starValue}
-          onPress={() => handleStarPress(starValue)}
-          style={styles.starButton}
-        >
-          <Text style={[styles.star, { fontSize: size }]}>⭐</Text>
-        </TouchableOpacity>
-      );
+      return 1; // Full
+    } else if (rating >= starValue - 0.5) {
+      return 0.5; // Half
+    } else {
+      return 0; // Empty
     }
-    
-    // Half star: rating is exactly 0.5 less than this star value
-    if (rating === starValue - 0.5) {
-      return (
-        <TouchableOpacity
-          key={starValue}
-          onPress={() => handleStarPress(starValue)}
-          style={styles.starButton}
-        >
-          <View style={styles.halfStarContainer}>
-            <Text style={[styles.star, styles.starEmpty, { fontSize: size }]}>☆</Text>
-            <View style={[styles.halfStarOverlay, { width: size / 2 }]}>
-              <Text style={[styles.star, { fontSize: size }]}>⭐</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    }
-    
-    // Empty star: rating is less than this star value
-    return (
-      <TouchableOpacity
-        key={starValue}
-        onPress={() => handleStarPress(starValue)}
-        style={styles.starButton}
-      >
-        <Text style={[styles.star, styles.starEmpty, { fontSize: size }]}>☆</Text>
-      </TouchableOpacity>
-    );
   };
 
   return (
     <View style={styles.container}>
-      {stars.map(renderStar)}
+      {stars.map((starValue) => (
+        <TouchableOpacity
+          key={starValue}
+          onPress={() => handleStarPress(starValue)}
+          style={styles.starButton}
+        >
+          <Star filled={getStarFill(starValue)} size={size} />
+        </TouchableOpacity>
+      ))}
       <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
     </View>
   );
@@ -84,21 +59,6 @@ const styles = StyleSheet.create({
   },
   starButton: {
     padding: 4,
-  },
-  star: {
-    color: '#f59e0b',
-  },
-  starEmpty: {
-    color: '#d1d5db',
-  },
-  halfStarContainer: {
-    position: 'relative',
-  },
-  halfStarOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'hidden',
   },
   ratingText: {
     marginLeft: 12,

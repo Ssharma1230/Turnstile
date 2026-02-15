@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../../src/context/AuthContext';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { entryAPI } from '../../src/services/api';
+import Star from '../../src/components/Star';
 
 type GameEntry = {
   id: string;
@@ -118,34 +119,25 @@ export default function FeedScreen() {
   };
 
   const renderStars = (rating: number) => {
-    const stars = [];
-    
-    for (let i = 1; i <= 5; i++) {
-      if (rating >= i) {
-        // Full star
-        stars.push(
-          <Text key={i} style={styles.star}>⭐</Text>
-        );
-      } else if (rating >= i - 0.5) {
-        // Half star - use overlay technique
-        stars.push(
-          <View key={i} style={styles.halfStarContainer}>
-            <Text style={[styles.star, styles.starEmpty]}>☆</Text>
-            <View style={styles.halfStarOverlay}>
-              <Text style={styles.star}>⭐</Text>
-            </View>
-          </View>
-        );
-      } else {
-        // Empty star
-        stars.push(
-          <Text key={i} style={[styles.star, styles.starEmpty]}>☆</Text>
-        );
-      }
+  const stars = [];
+  
+  for (let i = 1; i <= 5; i++) {
+    let filled = 0;
+    if (rating >= i) {
+      filled = 1; // Full
+    } else if (rating >= i - 0.5) {
+      filled = 0.5; // Half
     }
+    
+    stars.push(
+      <View key={i} style={{ marginLeft: i > 1 ? 4 : 0 }}>
+        <Star filled={filled} size={18} />
+      </View>
+    );
+  }
 
-    return <View style={styles.starsContainer}>{stars}</View>;
-  };
+  return <View style={styles.starsContainer}>{stars}</View>;
+};
 
   const getSortLabel = (sort: SortOption) => {
     switch (sort) {
@@ -532,27 +524,6 @@ const styles = StyleSheet.create({
   starsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  star: {
-    fontSize: 16,
-    marginLeft: 2,
-    color: '#f59e0b',
-  },
-  starEmpty: {
-    color: '#d1d5db',
-  },
-  halfStarContainer: {
-    position: 'relative',
-    width: 18,
-    height: 18,
-    marginLeft: 2,
-  },
-  halfStarOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: 9,
-    overflow: 'hidden',
   },
   teams: {
     fontSize: 18,
