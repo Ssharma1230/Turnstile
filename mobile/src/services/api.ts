@@ -68,6 +68,11 @@ export const userAPI = {
     return response.data;
   },
 
+  getStats: async () => {
+    const response = await api.get(`${API_ENDPOINTS.users.me}/stats`);
+    return response.data;
+  },
+
   getById: async (id: string) => {
     const response = await api.get(API_ENDPOINTS.users.byId(id));
     return response.data;

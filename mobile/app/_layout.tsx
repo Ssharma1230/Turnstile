@@ -9,6 +9,13 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen 
+          name="edit-profile" 
+          options={{ 
+            presentation: 'modal',
+            headerShown: false 
+          }} 
+        />
       </Stack>
     </AuthProvider>
   );

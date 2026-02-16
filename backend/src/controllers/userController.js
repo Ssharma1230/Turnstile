@@ -159,9 +159,52 @@ const getUserEntries = async (req, res) => {
   }
 };
 
+// Get user stats
+const getUserStats = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // Get total games attended
+    const gamesResult = await db.query(
+      'SELECT COUNT(*) as total_games FROM game_entries WHERE user_id = $1',
+      [userId]
+    );
+
+    // Get average rating
+    const ratingResult = await db.query(
+      'SELECT AVG(rating) as avg_rating FROM game_entries WHERE user_id = $1',
+      [userId]
+    );
+
+    // Get sports breakdown
+    const sportsResult = await db.query(
+      `SELECT sport_type, COUNT(*) as count 
+       FROM game_entries 
+       WHERE user_id = $1 
+       GROUP BY sport_type 
+       ORDER BY count DESC`,
+      [userId]
+    );
+
+    const stats = {
+      total_games: parseInt(gamesResult.rows[0].total_games) || 0,
+      avg_rating: ratingResult.rows[0].avg_rating 
+        ? parseFloat(parseFloat(ratingResult.rows[0].avg_rating).toFixed(1))
+        : 0,
+      sports_breakdown: sportsResult.rows,
+    };
+
+    res.json({ stats });
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
 module.exports = {
   getMe,
   updateMe,
   getUserById,
   getUserEntries,
+  getUserStats,
 };
