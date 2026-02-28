@@ -16,6 +16,13 @@ export default function RootLayout() {
             headerShown: false 
           }} 
         />
+        <Stack.Screen 
+          name="entry/[id]" 
+          options={{ 
+            presentation: 'card',
+            headerShown: false 
+          }} 
+        />
       </Stack>
     </AuthProvider>
   );

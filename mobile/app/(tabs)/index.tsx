@@ -149,48 +149,48 @@ export default function FeedScreen() {
   };
 
   const renderEntry = ({ item }: { item: GameEntry }) => (
-    <TouchableOpacity 
-      style={styles.entryCard}
-      onPress={() => {
-        // TODO: Navigate to entry detail screen
-        console.log('Entry clicked:', item.id);
-      }}
-    >
-      <View style={styles.entryHeader}>
-        <Text style={styles.sportType}>{item.sport_type}</Text>
-        {renderStars(item.rating)}
-      </View>
-      
-      <Text style={styles.teams}>
-        {item.home_team} vs {item.away_team}
+  <TouchableOpacity 
+    style={styles.entryCard}
+    onPress={() => {
+      // Navigate to entry detail screen
+      router.push(`/entry/${item.id}`);
+    }}
+  >
+    <View style={styles.entryHeader}>
+      <Text style={styles.sportType}>{item.sport_type}</Text>
+      {renderStars(item.rating)}
+    </View>
+    
+    <Text style={styles.teams}>
+      {item.home_team} vs {item.away_team}
+    </Text>
+    
+    {(item.home_score !== null && item.away_score !== null) && (
+      <Text style={styles.score}>
+        Final: {item.home_score} - {item.away_score}
       </Text>
-      
-      {(item.home_score !== null && item.away_score !== null) && (
-        <Text style={styles.score}>
-          Final: {item.home_score} - {item.away_score}
-        </Text>
-      )}
-      
-      <Text style={styles.venue}>📍 {item.venue_name}</Text>
-      <Text style={styles.date}>
-        📅 {new Date(item.game_date).toLocaleDateString('en-US', {
-          weekday: 'short',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        })}
+    )}
+    
+    <Text style={styles.venue}>📍 {item.venue_name}</Text>
+    <Text style={styles.date}>
+      📅 {new Date(item.game_date).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })}
+    </Text>
+    
+    {item.seat_section && (
+      <Text style={styles.seat}>🎟️ {item.seat_section}</Text>
+    )}
+    
+    {item.description && (
+      <Text style={styles.description} numberOfLines={3}>
+        {item.description}
       </Text>
-      
-      {item.seat_section && (
-        <Text style={styles.seat}>🎟️ {item.seat_section}</Text>
-      )}
-      
-      {item.description && (
-        <Text style={styles.description} numberOfLines={3}>
-          {item.description}
-        </Text>
-      )}
-    </TouchableOpacity>
+    )}
+  </TouchableOpacity>
   );
 
   const renderEmptyState = () => (
