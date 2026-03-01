@@ -21,13 +21,20 @@ type UserStats = {
 };
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   
   const [stats, setStats] = useState<UserStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+    useEffect(() => {
+    if (!isAuthenticated) {
+      console.log('🚪 User logged out, redirecting to login...');
+      router.replace('/login');
+    }
+  }, [isAuthenticated]);
+  
   useEffect(() => {
     loadStats();
   }, []);
