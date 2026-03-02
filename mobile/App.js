@@ -7,7 +7,7 @@ export default function App() {
 
   useEffect(() => {
     // Test connection to backend
-    fetch('http://localhost:3000/health')
+    fetch(process.env.EXPO_PUBLIC_API_HEALTH)
       .then(res => res.json())
       .then(data => setApiStatus('Connected to API'))
       .catch(err => setApiStatus('API not reachable'));

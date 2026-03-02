@@ -1,8 +1,4 @@
-const LOCAL_IP = 'localhost';
-
-export const API_BASE_URL = __DEV__ 
-  ? `http://localhost:3000`
-  : 'https://your-production-api.com';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 export const API_ENDPOINTS = {
   health: '/health',
