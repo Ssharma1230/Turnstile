@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reset your Turnstile password</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 2rem; max-width: 640px; margin: auto; }
+      label { display:block; margin-top: 1rem; }
+      input { width:100%; padding: .5rem; margin-top:.25rem; }
+      button { margin-top: 1rem; padding:.6rem 1rem; }
+      .msg { margin-top: 1rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Reset your password</h1>
+    <form id="resetForm">
+      <label>
+        Email
+        <input id="email" type="email" name="email" required />
+      </label>
+
+      <label>
+        Token
+        <input id="token" name="token" required />
+      </label>
+
+      <label>
+        New password
+        <input id="newPassword" type="password" name="newPassword" required minlength="8" />
+      </label>
+
+      <label>
+        Confirm new password
+        <input id="confirmPassword" type="password" required minlength="8" />
+      </label>
+
+      <button type="submit">Reset Password</button>
+    </form>
+
+    <div class="msg" id="message"></div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const tokenParam = params.get('token');
+      const emailParam = params.get('email');
+      if (tokenParam) document.getElementById('token').value = tokenParam;
+      if (emailParam) document.getElementById('email').value = decodeURIComponent(emailParam);
+
+      const form = document.getElementById('resetForm');
+      const msg = document.getElementById('message');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        const token = document.getElementById('token').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const newPassword = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        if (newPassword !== confirm) { msg.textContent = 'Passwords do not match'; return; }
+
+        try {
+          const res = await fetch('/api/auth/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, email, newPassword })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            msg.style.color = 'green';
+            msg.textContent = data.message || 'Password reset successful';
+          } else {
+            msg.style.color = 'red';
+            msg.textContent = data.error || JSON.stringify(data);
+          }
+        } catch (err) {
+          msg.style.color = 'red';
+          msg.textContent = 'Network error';
+        }
+      });
+    </script>
+  </body>
+</html>
